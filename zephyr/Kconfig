@@ -3,9 +3,15 @@ menu "app_poll_lib options"
 config APP_POLL_LIB
     bool "Enable app_poll_lib Library"
     default y
+    depends on POLL
     help
       Enable support for app_poll_lib.
 
 
+config APP_POLL_FDS_COUNT
+	int "Size of the poll fd list"
+	default 20
+	help
+	  Size of the poll fd list
 endmenu
 
