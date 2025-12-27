@@ -1,0 +1,11 @@
+menu "__MODULE_NAME__ options"
+
+config __MODULE_NAME_UPPER__
+    bool "Enable __MODULE_NAME__ Library"
+    default y
+    help
+      Enable support for __MODULE_NAME__.
+
+
+endmenu
+

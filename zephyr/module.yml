@@ -1,0 +1,5 @@
+name: __MODULE_NAME__
+
+build:
+  cmake: zephyr
+  kconfig: zephyr/Kconfig

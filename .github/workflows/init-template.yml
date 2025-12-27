@@ -1,0 +1,87 @@
+name: Initialize module from template
+
+on:
+  push:
+    branches: 
+      - main # Only run while the marker file still exists
+      - master
+    paths:
+      - '.template_init_pending'
+
+permissions:
+  contents: write
+
+jobs:
+  init:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Compute names from repo
+        run: |
+          # repo name, e.g. "zephyr-fan-ctrl"
+          REPO_NAME="${GITHUB_REPOSITORY##*/}"
+
+          # module name: lower_snake (dashes -> underscores)
+          MODULE_NAME="${REPO_NAME//-/_}"
+          MODULE_NAME_LOWER="${MODULE_NAME,,}"
+          MODULE_NAME_UPPER="${MODULE_NAME^^}"
+
+          echo "REPO_NAME=$REPO_NAME"           >> $GITHUB_ENV
+          echo "MODULE_NAME=$MODULE_NAME_LOWER" >> $GITHUB_ENV
+          echo "MODULE_NAME_UPPER=$MODULE_NAME_UPPER" >> $GITHUB_ENV
+
+      - name: Replace tokens in files
+        run: |
+          echo "Using MODULE_NAME=${MODULE_NAME}, MODULE_NAME_UPPER=${MODULE_NAME_UPPER}, PROJECT_NAME=${REPO_NAME}"
+
+          find . -type f \
+            ! -path "./.git/*" \
+            ! -path "./.github/workflows/init-template.yml" \
+            -exec sed -i \
+              -e "s/__MODULE_NAME_UPPER__/${MODULE_NAME_UPPER}/g" \
+              -e "s/__MODULE_NAME__/${MODULE_NAME}/g" \
+              -e "s/__PROJECT_NAME__/${REPO_NAME}/g" \
+              {} +
+
+      - name: Rename files and directories
+        run: |
+          # include dir
+          if [ -d "include/__MODULE_NAME__" ]; then
+            git mv "include/__MODULE_NAME__" "include/${MODULE_NAME}"
+          fi
+
+          # header file
+          if [ -f "include/${MODULE_NAME}/__MODULE_NAME__.h" ]; then
+            git mv "include/${MODULE_NAME}/__MODULE_NAME__.h" \
+                   "include/${MODULE_NAME}/${MODULE_NAME}.h"
+          fi
+
+          # source file
+          if [ -f "src/__MODULE_NAME__.c" ]; then
+            git mv "src/__MODULE_NAME__.c" "src/${MODULE_NAME}.c"
+          fi
+
+          # sample file
+          if [ -d "samples/__MODULE_NAME___basic" ]; then
+            git mv "samples/__MODULE_NAME___basic" "samples/${MODULE_NAME}/"
+          fi
+
+      - name: Remove template marker and workflow
+        run: |
+          rm -f .template_init_pending
+          # Optional: remove this workflow so it never runs again
+          # rm -f .github/workflows/init-template.yml
+
+      - name: Commit changes
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "Initialize module from template" || echo "Nothing to commit"
+          git push
+
