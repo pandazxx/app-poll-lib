@@ -1,4 +1,4 @@
-name: __MODULE_NAME__
+name: app_poll_lib
 
 build:
   cmake: zephyr
